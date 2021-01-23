@@ -1,6 +1,8 @@
 This is a project that I worked on while at Florida State University. This project downloaded data from Canvas and databases and loaded them into tables and Canvas. 
 
-# downloadtables.py
+# pythonReplicateData
+
+## downloadtables.py
 This CLI application works by utilizing cx_Oracle to run a query against a database in order to get results for a specific table (from a YAML list or a specificied table in the command line). 
 
 The query results are then placed in a Pandas table, and then downloaded as a .dat file.
@@ -19,7 +21,7 @@ username@hostname > python3.6 downloadtables.py --tablename {tablename} {all, ho
 # ex: 'python3.6 downloadtables.py --tablename tmp_example_table custom qna' will only download the data for the tmp_example_table table from the "custom" tables list using the qna db.
 ```
 The '--tablename' argument is an optional but important one if you are looking to download the data of the tmp_table of your choice. 
-# sqlldrData.py
+## sqlldrData.py
 
 
 ```bash
@@ -34,8 +36,8 @@ username@hostname > python3.6 sqlldrData.py --tablename {tablename} {all, hourly
 # ex: 'python3.6 sqlldrData.py --tablename tmp_campus all' will only load and refresh the data for the fsuvs_example_table mat view from the "custom" tables list.
 ```
 
-# Adding New Tables
-## conf/appconf.yaml 
+## Adding New Tables
+### conf/appconf.yaml 
 There is a possibility that you might have to add a new user, but for the most part that is a rare occurrance. What isn't unusual though, is having to change the password of an already existing user. Especially after an Oracle upgrade.
 
 In order to change the password of a user, you will have to encode it first and paste the encoded password into the appconf yaml file.
@@ -58,7 +60,7 @@ hello
 
 The password in the YAML file must be encoded, as the password is decoded in the script directly.
 
-## conf/tablelist.yaml
+### conf/tablelist.yaml
 
 After verifying that the appconf.yaml looks good, you have to add the tables that you are interesting in grabbing data from to the tablelist.yaml. Depending on how often you want this table to run, it's ideal to also include it to the 'all' schedule, since you are able to download/refresh one or more tables. Make sure these tables are in alphabetical order:
 
@@ -74,7 +76,7 @@ all:
 ```
 
 
-## tmp_table / materialized view creation
+### tmp_table / materialized view creation
 
 The next step would be to create the base temp tables for the data to be stored in, along with the materialized view that will be used to query the data. 
 
@@ -100,7 +102,7 @@ SELECT "ID", "COURSE_ID", "SEMESTER", "COURSE_NAME" FROM SCHEMA_A.TMP_EXAMPLE_TA
 
 ```
 
-## conf/tablesconf.yaml
+### conf/tablesconf.yaml
 
 Once the base tables and the materialized views are created, we will need to place the select queries inside of the 'tablesconf.yaml' file. Inside of tablesconf, the format should look similar to this:
 
@@ -133,7 +135,7 @@ varbl1 = the terms that you wish to grab the data from. This is optional and dep
 sql = the query that will be used to load the data to the base table. this will be queried from the original source of the data 'dctable'.
 toggle = if the toggle is on, it will load the data into the base table, if it's off it will skip the table and change the status table to say that the table was 'skipped'.
 
-## ctls/tmp_{tablename}.ctl
+### ctls/tmp_{tablename}.ctl
 
 In order to SQLLOAD the table, you will need to create a .ctl file for it, which specifies where the data is coming from, where the bad data is going, and which table the data will be loaded into. 
 
