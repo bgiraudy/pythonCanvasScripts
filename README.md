@@ -230,7 +230,103 @@ UPDATE REPLICATE_CURRENT_STATUS SET STATUS = 'successful' WHERE JOBNAME = 'fsuvs
 
 ```
 
-
 ## Verify
 
 Verify that the data is loaded in both the tmp tables, as well as the materialized views. Should everything go well, you will have data in both the base table and mat view. Otherwise, check the .bad files/logs for any issues that need to be fixed.
+
+# canvasProvisions.py
+
+Provisioning reports download .csvs from Canvas, and this script will kick-start a report using the requests library in order to download the .csvs and place the data inside of cnv_* tables. Once the data is loaded, it will refresh the canvas_* materialized view. In order to run this script:
+
+```bash
+# To run a provision for all of the regular Canvas tables (which includes non-term and term-based data): 
+python3.6 canvasProvisions.py  
+
+# If you want to run a historical report, which are all of the terms that have ever existed in Canvas:
+python3.6 canvasProvisions.py --historical true
+
+# To run the org-based provisions, run:
+python3.6 canvasProvisions.py --processorgs true
+```
+
+## conf/tablesconf.yaml
+
+The only values that need to change would be for the terms key. Currently they are
+
+```yaml
+terms: ['sp20', 'fa19', 'su20']
+```
+These terms translate to be 'current', 'previous' and 'next'. Including other terms to this will download all of the .csvs from that semester. 
+
+The terms require the 'human-readable' version of a Canvas term. The script will convert these values into their numerical version as long as the term key starts with 'xx00' (two letters and two numbers). As long as the term exists in Canvas, it will download all of the numerical terms for that term.
+
+# canvasApi.py
+
+The canvasAPI CLI is responsible for taking what was downloaded from the canvasProvisions CLI and loading them directly into Canvas using Canvas' REST API.
+
+In order to run the canvasAPI CLI, do the following:
+
+```python
+# In order to run the regular canvas API:
+username@hostname> python3.6 canvasApi.py
+
+# In order to process the org enroll/unenrollments, do:
+username@hostname> python3.6 canvasApi.py --processorgs true
+```
+
+The canvasApi CLI also has the ability to run singular processes as well. In order to do so, add the following argument.
+
+```python
+# In this instance, a tablename refers to the process that you wish to run as a singular job.
+username@hostname> python3.6 canvasApi.py --tablename {process}
+
+#example
+username@hostname> python3.6 canvasApi.py --tablename canvas_example_table
+username@hostname> python3.6 canvasApi.py --tablename canvas_example_table2
+username@hostname> python3.6 canvasApi.py --tablename canvas_example_table3
+```
+
+# Crontabs
+
+The crontabs are the method of running each application depending on how often you would need to do so. For instance, the "hourly" process is started every two hours, which will give each job (pythonReplicateData, pythonProvisions, pythonCanvasAPI) more than enough time to run. Each process usually takes about an hour and a half from beginning to end. The hourly was ran from 4am, 6am, 8am, 12pm, 2pm, 4pm, 6pm and 8pm every monday through friday.
+
+That crontab entry would look like:
+
+```bash
+0 4,6,8,12,14,16,18,20 * * 1-5 /home/username/pythonCanvasScripts/crontabs/replicateHourly.sh
+```
+
+Where that replicateHourly.sh looks like:
+
+
+```bash
+NOW=$( date '+%F_%H:%M:%S' )
+echo "Canvas ReplicateHourly Script:" 
+echo $NOW
+echo "Running downloadtables.py hourly." 
+cd {fullfilepath}/pythonReplicateData/
+pwd
+sleep 2
+python3.6 {fullfilepath}/pythonReplicateData/downloadtables.py hourly odl_usr 
+sleep 2
+echo "Now running SQLLDR along with a MV Refresh:" 
+sleep 2
+python3.6 {fullfilepath}/pythonReplicateData/sqlldrData.py hourly
+echo "Now running Provisioning script:"
+python3.6 {fullfilepath}/pythonProvisions/canvasProvisions.py
+provstatus=$(head -n 1 {fullfilepath}/pythonProvisions/provisions_status)
+echo $provstatus
+if [[ $provstatus == "successful" ]]
+then
+	echo "Now running CanvasAPI:"
+	python3.6 {fullfilepath}/pythonCanvasAPI/canvasApi.py 
+	echo "Hourly refresh completed."
+	DONE=$( date '+%F_%H:%M:%S' )
+	echo $DONE
+elif [[ $provstatus == "failed" ]]
+then
+	echo "Provisions failed for some reason. Exiting crontab now!"
+	python3.6 {fullfilepath}/pythonProvisions/provisions_fail_email.py
+	exit 1
+fi
+```
