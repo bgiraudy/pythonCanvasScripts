@@ -3,7 +3,7 @@ This is a project that I worked on while at Florida State University. This proje
 # pythonReplicateData
 
 ## downloadtables.py
-This CLI application works by utilizing cx_Oracle to run a query against a database in order to get results for a specific table (from a YAML list or a specificied table in the command line). 
+This CLI application works by utilizing cx_Oracle to run a query in order to get results for a specific table (from a YAML list or a specificied table in the command line). 
 
 The query results are then placed in a Pandas table, and then downloaded as a .dat file.
 
@@ -158,8 +158,7 @@ COURSE_NAME
 
 ## replicate_current_status table
 
-In order to see what the current status is of any table, you will have to include it in the replicate_current_status table. You will need to manually insert all of the tmp tables (CTRL-i), type each materialized view name 'fsuvs_{tablename}' under the 'jobname' column, and commit the changes (F11).
-
+In order to see what the current status is of any table, you will have to include it in the replicate_current_status table. In SQL Developer, You will need to manually insert all of the tmp tables (CTRL-i), type each materialized view name 'fsuvs_{tablename}' under the 'jobname' column, and commit the changes (F11). In any other DBMS ide, include the names of the base tables in a column named 'tablename', and inside the name of the materialized view under the 'jobname' column, and commit the changes to the 'replicate_current_status' table.
 
 ## Run downloadtables.py
 
